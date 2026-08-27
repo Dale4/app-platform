@@ -24,10 +24,10 @@ npm install
 Bootstrap the account/region once:
 
 ```powershell
-npx cdk bootstrap aws://<account-id>/us-west-2
+npx cdk bootstrap aws://<account-id>/us-west-1
 ```
 
-Default region is `us-west-2` (override with `CDK_DEFAULT_REGION` or your AWS CLI profile).
+Default region is `us-west-1` (override with `CDK_DEFAULT_REGION` or your AWS CLI profile).
 
 ## Commands
 
@@ -80,7 +80,7 @@ Until an app repo pushes a real image, each service runs `public.ecr.aws/nginx/n
 After you push an image:
 
 ```powershell
-npx cdk deploy --all -c env=dev -c ConstFlowImage=<account>.dkr.ecr.us-west-2.amazonaws.com/app-platform/dev/constflow:tag
+npx cdk deploy --all -c env=dev -c ConstFlowImage=<account>.dkr.ecr.us-west-1.amazonaws.com/app-platform/dev/constflow:tag
 ```
 
 Real ASP.NET 8 images should listen on **8080** and expose **GET /health**. Those values are already set on the app definition; they take effect when `ImageUri` is set (placeholder nginx uses 80 and `/`).
@@ -107,7 +107,7 @@ Create an IAM role that GitHub can assume via OIDC, then add:
 | Name | Type | Value |
 | --- | --- | --- |
 | `AWS_ROLE_ARN` | repository secret | IAM role ARN |
-| `AWS_REGION` | repository variable (optional) | default `us-west-2` |
+| `AWS_REGION` | repository variable (optional) | default `us-west-1` |
 
 Trust GitHub OIDC (`token.actions.githubusercontent.com`) for this repo (`Dale4/app-platform`). The role needs permissions to deploy CDK stacks (AdministratorAccess is simplest for a sandbox; tighten later).
 
