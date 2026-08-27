@@ -1,0 +1,46 @@
+name: Deploy environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Environment to create or update
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install AWS CDK CLI
+        run: npm ci
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+
+      - name: Deploy environment
+        run: npx cdk deploy --all -c env=${{ inputs.env }} --require-approval never

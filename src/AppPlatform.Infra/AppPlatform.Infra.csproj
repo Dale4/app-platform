@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AppPlatform.Infra</RootNamespace>
+    <AssemblyName>AppPlatform.Infra</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Amazon.CDK.Lib" Version="2.221.0" />
+    <PackageReference Include="Constructs" Version="10.4.2" />
+  </ItemGroup>
+</Project>

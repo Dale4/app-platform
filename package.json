@@ -1,0 +1,8 @@
+{
+  "name": "app-platform",
+  "private": true,
+  "description": "Local AWS CDK CLI matching Amazon.CDK.Lib used by the C# app",
+  "devDependencies": {
+    "aws-cdk": "^2.1031.0"
+  }
+}

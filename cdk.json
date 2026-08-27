@@ -1,0 +1,19 @@
+{
+  "app": "dotnet run --project src/AppPlatform.Infra/AppPlatform.Infra.csproj",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "src/*/obj",
+      "src/*/bin",
+      "**/*.sln"
+    ]
+  },
+  "context": {
+    "@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
+    "@aws-cdk/aws-ecs:arnFormatIncludesClusterName": true,
+    "@aws-cdk/aws-rds:lowercaseDbIdentifier": true,
+    "@aws-cdk/aws-ecs-patterns:secGroupsDisablesImplicitOpenListener": true
+  }
+}
