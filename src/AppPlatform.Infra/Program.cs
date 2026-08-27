@@ -14,7 +14,7 @@ if (envName is not ("dev" or "test"))
 var awsEnv = new Environment
 {
     Account = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_ACCOUNT"),
-    Region = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_REGION") ?? "us-west-2",
+    Region = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_REGION") ?? "us-west-1",
 };
 
 Tags.Of(app).Add("Project", "app-platform");

@@ -40,7 +40,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Deploy environment
         run: npx cdk deploy --all -c env=${{ inputs.env }} --require-approval never

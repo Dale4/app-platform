@@ -40,7 +40,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Destroy environment
         run: npx cdk destroy --all -c env=${{ inputs.env }} --force
