@@ -38,4 +38,26 @@ public static class AppDefinitions
         new("ConstFlow", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 10),
         new("ProFlow", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 20),
     ];
+
+    /// <summary>
+    /// All apps when <paramref name="appName"/> is omitted; otherwise the matching app (name or id, case-insensitive).
+    /// </summary>
+    public static IReadOnlyList<AppDefinition> Resolve(string? appName)
+    {
+        if (string.IsNullOrWhiteSpace(appName))
+            return All;
+
+        var match = All.FirstOrDefault(a =>
+            a.Name.Equals(appName, StringComparison.OrdinalIgnoreCase) ||
+            a.Id.Equals(appName, StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+        {
+            var names = string.Join(", ", All.Select(a => a.Name));
+            throw new ArgumentException(
+                $"Context 'app' must be one of: {names}. Example: cdk deploy --all -c env=dev -c app=ConstFlow");
+        }
+
+        return [match];
+    }
 }

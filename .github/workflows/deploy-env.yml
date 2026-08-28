@@ -10,6 +10,15 @@ on:
         options:
           - dev
           - test
+      app:
+        description: App to deploy (all = every app in the environment)
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - ConstFlow
+          - ProFlow
 
 permissions:
   id-token: write
@@ -43,4 +52,9 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Deploy environment
-        run: npx cdk deploy --all -c env=${{ inputs.env }} --require-approval never
+        run: |
+          if [ "${{ inputs.app }}" = "all" ]; then
+            npx cdk deploy --all -c env=${{ inputs.env }} --require-approval never
+          else
+            npx cdk deploy --all -c env=${{ inputs.env }} -c app=${{ inputs.app }} --require-approval never
+          fi

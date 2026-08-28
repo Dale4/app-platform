@@ -11,6 +11,8 @@ if (envName is not ("dev" or "test"))
     throw new ArgumentException("Context 'env' must be 'dev' or 'test'. Example: cdk deploy --all -c env=dev");
 }
 
+var selectedApps = AppDefinitions.Resolve(app.Node.TryGetContext("app")?.ToString());
+
 var awsEnv = new Environment
 {
     Account = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_ACCOUNT"),
@@ -30,7 +32,7 @@ var network = new NetworkStack(app, $"AppPlatform-{envLabel}-Network", new Netwo
     Description = $"Shared VPC, ALB, and ECS cluster for the {envName} environment",
 });
 
-foreach (var definition in AppDefinitions.All)
+foreach (var definition in selectedApps)
 {
     var imageOverride = app.Node.TryGetContext($"{definition.Name}Image")?.ToString();
     var resolved = string.IsNullOrWhiteSpace(imageOverride)

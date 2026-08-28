@@ -36,6 +36,13 @@ Default region is `us-west-1` (override with `CDK_DEFAULT_REGION` or your AWS CL
 .\scripts\deploy-env.ps1 -Env dev
 .\scripts\deploy-env.ps1 -Env test
 
+# Create or update one app (shared VPC/ALB/cluster is deployed if needed)
+.\scripts\deploy-env.ps1 -Env dev -App ConstFlow
+.\scripts\deploy-env.ps1 -Env dev -App ProFlow
+
+# Tear down one app (shared network is kept)
+.\scripts\destroy-env.ps1 -Env dev -App ConstFlow
+
 # Tear everything down (RDS, Fargate, CloudFront, VPC)
 .\scripts\destroy-env.ps1 -Env dev
 ```
@@ -44,6 +51,8 @@ Equivalent CDK (`npx cdk` uses the version in `package.json`; a global `cdk` wor
 
 ```powershell
 npx cdk deploy --all -c env=dev
+npx cdk deploy --all -c env=dev -c app=ConstFlow
+npx cdk destroy AppPlatform-Dev-ConstFlow -c env=dev -c app=ConstFlow --force
 npx cdk destroy --all -c env=dev --force
 ```
 
@@ -80,7 +89,7 @@ Until an app repo pushes a real image, each service runs `public.ecr.aws/nginx/n
 After you push an image:
 
 ```powershell
-npx cdk deploy --all -c env=dev -c ConstFlowImage=<account>.dkr.ecr.us-west-1.amazonaws.com/app-platform/dev/constflow:tag
+npx cdk deploy --all -c env=dev -c app=ConstFlow -c ConstFlowImage=<account>.dkr.ecr.us-west-1.amazonaws.com/app-platform/dev/constflow:tag
 ```
 
 Real ASP.NET 8 images should listen on **8080** and expose **GET /health**. Those values are already set on the app definition; they take effect when `ImageUri` is set (placeholder nginx uses 80 and `/`).
@@ -93,14 +102,14 @@ Add an entry in [`src/AppPlatform.Infra/Configuration/AppDefinitions.cs`](src/Ap
 new("ThirdApp", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 30),
 ```
 
-`ListenerPriority` must be unique. Redeploy the environment.
+`ListenerPriority` must be unique. Add the same name to the `app` choices in `.github/workflows/deploy-env.yml` and `destroy-env.yml`. Redeploy with `-App ThirdApp` or omit `-App` to deploy every app.
 
 ## GitHub Actions
 
 Manual workflows:
 
-- **Deploy environment** — `workflow_dispatch` with `dev` or `test`
-- **Destroy environment** — same, runs `npx cdk destroy --all --force`
+- **Deploy environment** — `workflow_dispatch` with `dev` or `test`, and `all` / `ConstFlow` / `ProFlow`
+- **Destroy environment** — same. `all` tears down the whole environment; a single app leaves the shared network in place
 
 Create an IAM role that GitHub can assume via OIDC, then add:
 
