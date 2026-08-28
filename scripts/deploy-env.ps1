@@ -1,11 +1,22 @@
 param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("dev", "test")]
-    [string]$Env
+    [string]$Env,
+
+    [Parameter()]
+    [string]$App
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-Write-Host "Deploying app-platform environment '$Env'..."
-npx cdk deploy --all -c "env=$Env" --require-approval never
+$cdkArgs = @("-c", "env=$Env")
+if ($App) {
+    $cdkArgs += @("-c", "app=$App")
+    Write-Host "Deploying app '$App' in environment '$Env' (shared network is included)..."
+}
+else {
+    Write-Host "Deploying app-platform environment '$Env' (all apps)..."
+}
+
+npx cdk deploy --all @cdkArgs --require-approval never

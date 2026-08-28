@@ -10,6 +10,15 @@ on:
         options:
           - dev
           - test
+      app:
+        description: App to destroy (all = entire environment including network)
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - ConstFlow
+          - ProFlow
 
 permissions:
   id-token: write
@@ -43,4 +52,18 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Destroy environment
-        run: npx cdk destroy --all -c env=${{ inputs.env }} --force
+        run: |
+          set -euo pipefail
+          ENV="${{ inputs.env }}"
+          APP="${{ inputs.app }}"
+          if [ "$APP" = "all" ]; then
+            npx cdk destroy --all -c "env=$ENV" --force
+          else
+            app_stacks=$(npx cdk ls -c "env=$ENV" -c "app=$APP" | grep -v -- '-Network$' || true)
+            if [ -z "$app_stacks" ]; then
+              echo "No app stack found for $APP in $ENV"
+              exit 1
+            fi
+            # shellcheck disable=SC2086
+            npx cdk destroy $app_stacks -c "env=$ENV" -c "app=$APP" --force
+          fi
