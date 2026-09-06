@@ -1,12 +1,12 @@
 # App Platform
 
-AWS CDK (C#) that creates and destroys shared **dev** and **test** environments for ConstFlow and ProFlow. Each environment has a shared VPC, Application Load Balancer, and ECS cluster. Each app gets:
+AWS CDK (C#) that creates and destroys shared **dev** and **test** environments for ConstFlow, ProFlow, and WaterFlow. Each environment has a shared VPC, Application Load Balancer, and ECS cluster. Each app gets:
 
 - React static site on S3 + CloudFront
 - ASP.NET API on ECS Fargate
 - PostgreSQL on RDS
 
-This repository is **platform only**. Application source, Dockerfiles, and React builds live in the ConstFlow and ProFlow repos.
+This repository is **platform only**. Application source, Dockerfiles, and React builds live in the ConstFlow, ProFlow, and WaterFlow repos.
 
 ## Prerequisites
 
@@ -32,13 +32,14 @@ Default region is `us-west-1` (override with `CDK_DEFAULT_REGION` or your AWS CL
 ## Commands
 
 ```powershell
-# Create or update an environment (both apps)
+# Create or update an environment (all apps)
 .\scripts\deploy-env.ps1 -Env dev
 .\scripts\deploy-env.ps1 -Env test
 
 # Create or update one app (shared VPC/ALB/cluster is deployed if needed)
 .\scripts\deploy-env.ps1 -Env dev -App ConstFlow
 .\scripts\deploy-env.ps1 -Env dev -App ProFlow
+.\scripts\deploy-env.ps1 -Env dev -App WaterFlow
 
 # Tear down one app (shared network is kept)
 .\scripts\destroy-env.ps1 -Env dev -App ConstFlow
@@ -66,6 +67,7 @@ There is no custom domain in this first version.
 | --- | --- | --- |
 | ConstFlow | `http://<alb-dns>/constflow` | CloudFront URL from stack output `FrontendUrl` |
 | ProFlow | `http://<alb-dns>/proflow` | CloudFront URL from stack output `FrontendUrl` |
+| WaterFlow | `http://<alb-dns>/waterflow` | CloudFront URL from stack output `FrontendUrl` |
 
 `ASPNETCORE_PATHBASE` is already injected as `/{app}`. React production builds should use that API URL (for example `VITE_API_URL=http://<alb-dns>/constflow`).
 
@@ -99,7 +101,7 @@ Real ASP.NET 8 images should listen on **8080** and expose **GET /health**. Thos
 Add an entry in [`src/AppPlatform.Infra/Configuration/AppDefinitions.cs`](src/AppPlatform.Infra/Configuration/AppDefinitions.cs):
 
 ```csharp
-new("ThirdApp", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 30),
+new("ThirdApp", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 40),
 ```
 
 `ListenerPriority` must be unique. Add the same name to the `app` choices in `.github/workflows/deploy-env.yml` and `destroy-env.yml`. Redeploy with `-App ThirdApp` or omit `-App` to deploy every app.
@@ -108,7 +110,7 @@ new("ThirdApp", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB:
 
 Manual workflows:
 
-- **Deploy environment** — `workflow_dispatch` with `dev` or `test`, and `all` / `ConstFlow` / `ProFlow`
+- **Deploy environment** — `workflow_dispatch` with `dev` or `test`, and `all` / `ConstFlow` / `ProFlow` / `WaterFlow`
 - **Destroy environment** — same. `all` tears down the whole environment; a single app leaves the shared network in place
 
 Create an IAM role that GitHub can assume via OIDC, then add:
@@ -124,6 +126,6 @@ The account must already be `cdk bootstrap`ped.
 
 ## Cost
 
-Leaving one environment up with two apps is roughly **$80–100/month** (NAT, ALB, two `db.t4g.micro` instances, Fargate). Destroy the environment when you are not using it.
+Leaving one environment up with three apps is roughly **$110–140/month** (NAT, ALB, three `db.t4g.micro` instances, Fargate). Destroy the environment when you are not using it.
 
 Non-prod resources use `RemovalPolicy.DESTROY`, RDS deletion protection off, S3 auto-delete, and ECR empty-on-delete so destroy completes without leftover buckets or images.

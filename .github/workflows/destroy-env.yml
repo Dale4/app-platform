@@ -19,6 +19,7 @@ on:
           - all
           - ConstFlow
           - ProFlow
+          - WaterFlow
 
 permissions:
   id-token: write

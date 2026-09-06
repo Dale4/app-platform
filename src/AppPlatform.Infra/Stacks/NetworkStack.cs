@@ -88,7 +88,7 @@ public sealed class NetworkStack : Stack
         new CfnOutput(this, "AlbDnsName", new CfnOutputProps
         {
             Value = Alb.LoadBalancerDnsName,
-            Description = "Shared ALB DNS. APIs are at /{app} and /{app}/* (constflow, proflow).",
+            Description = "Shared ALB DNS. APIs are at /{app} and /{app}/* (constflow, proflow, waterflow).",
         });
         new CfnOutput(this, "ClusterName", new CfnOutputProps
         {
