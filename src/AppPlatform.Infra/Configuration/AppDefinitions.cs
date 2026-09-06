@@ -37,6 +37,7 @@ public static class AppDefinitions
     [
         new("ConstFlow", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 10),
         new("ProFlow", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 20),
+        new("WaterFlow", ContainerPort: 8080, HealthPath: "/health", Cpu: 256, MemoryMiB: 512, ListenerPriority: 30),
     ];
 
     /// <summary>
