@@ -6,6 +6,7 @@ using Amazon.CDK.AWS.SecretsManager;
 using Constructs;
 using AppPlatform.Infra.Configuration;
 using Secret = Amazon.CDK.AWS.ECS.Secret;
+using SmSecret = Amazon.CDK.AWS.SecretsManager.Secret;
 
 namespace AppPlatform.Infra.Constructs;
 
@@ -23,6 +24,13 @@ public sealed class AspNetFargateServiceProps
 
 public sealed class AspNetFargateService : Construct
 {
+    /// <summary>
+    /// Plaintext secret created by hand per app and environment.
+    /// CDK imports it and does not delete it on destroy.
+    /// </summary>
+    public static string JwtSigningKeySecretName(string envName, string appId) =>
+        $"app-platform/{envName}/{appId}/jwt-signing-key";
+
     public FargateService Service { get; }
 
     public SecurityGroup SecurityGroup { get; }
@@ -51,6 +59,11 @@ public sealed class AspNetFargateService : Construct
 
         var aspnetEnvironment = props.EnvName == "dev" ? "Development" : "Staging";
 
+        // Imported, not owned by this stack — cdk destroy leaves the secret in place.
+        var jwtSigningKey = SmSecret.FromSecretNameV2(
+            this, "JwtSigningKey", JwtSigningKeySecretName(props.EnvName, app.Id));
+        jwtSigningKey.GrantRead(taskDefinition.ObtainExecutionRole());
+
         var container = taskDefinition.AddContainer("Api", new ContainerDefinitionOptions
         {
             Image = ContainerImage.FromRegistry(app.ResolvedImage),
@@ -67,11 +80,14 @@ public sealed class AspNetFargateService : Construct
                 ["DB_HOST"] = props.DatabaseHost,
                 ["DB_PORT"] = props.DatabasePort,
                 ["DB_NAME"] = props.DatabaseName,
+                ["JWT_ISSUER"] = $"app-platform/{props.EnvName}/{app.Id}",
+                ["JWT_AUDIENCE"] = $"{app.Id}-api",
             },
             Secrets = new Dictionary<string, Secret>
             {
                 ["DB_USER"] = Secret.FromSecretsManager(props.DatabaseSecret, "username"),
                 ["DB_PASSWORD"] = Secret.FromSecretsManager(props.DatabaseSecret, "password"),
+                ["JWT_SIGNING_KEY"] = Secret.FromSecretsManager(jwtSigningKey),
             },
         });
         container.AddPortMappings(new PortMapping

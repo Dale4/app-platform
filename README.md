@@ -84,6 +84,22 @@ Build a connection string in the API, for example:
 
 RDS is in private subnets and only accepts connections from that app's Fargate security group.
 
+## JWT
+
+Create a Secrets Manager secret **once by hand per app and environment** in `us-west-1` before the first deploy that includes JWT. Use a plaintext value (the signing key). CDK imports it and does **not** delete it on destroy.
+
+Name: `app-platform/{env}/{app}/jwt-signing-key`
+
+Examples: `app-platform/dev/waterflow/jwt-signing-key`, `app-platform/dev/constflow/jwt-signing-key`
+
+Each API task then receives:
+
+- `JWT_ISSUER` (environment) — `app-platform/{env}/{app}` (example: `app-platform/dev/waterflow`)
+- `JWT_AUDIENCE` (environment) — `{app}-api` (example: `waterflow-api`)
+- `JWT_SIGNING_KEY` (Secrets Manager, injected at task start)
+
+Match those issuer and audience values in the app. Do not paste the signing key into the ECS console; the next deploy would replace the task definition.
+
 ## Container images
 
 Until an app repo pushes a real image, each service runs `public.ecr.aws/nginx/nginx:stable-alpine` (port 80, health check `/`). Each app stack still creates an ECR repository.
