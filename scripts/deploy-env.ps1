@@ -92,7 +92,7 @@ function Publish-AppFrontend {
         throw "s3 sync failed for $bucket."
     }
 
-    aws cloudfront create-invalidation --distribution-id $distributionId --paths "/*"
+    aws cloudfront create-invalidation --region $Region --distribution-id $distributionId --paths "/*"
     if ($LASTEXITCODE -ne 0) {
         throw "CloudFront invalidation failed for $distributionId."
     }

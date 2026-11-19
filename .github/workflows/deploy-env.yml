@@ -61,6 +61,8 @@ jobs:
           fi
 
       - name: Publish frontends
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-west-1' }}
         run: |
           set -euo pipefail
           ENV="${{ inputs.env }}"
@@ -83,13 +85,13 @@ jobs:
             npm ci --prefix "$web"
             VITE_API_BASE_URL="$prefix" npm run build --prefix "$web"
             stack="AppPlatform-${label}-${app}"
-            bucket="$(aws cloudformation describe-stacks --stack-name "$stack" --query "Stacks[0].Outputs[?OutputKey=='FrontendBucket'].OutputValue | [0]" --output text)"
-            distribution="$(aws cloudformation describe-stacks --stack-name "$stack" --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue | [0]" --output text)"
+            bucket="$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$stack" --query "Stacks[0].Outputs[?OutputKey=='FrontendBucket'].OutputValue | [0]" --output text)"
+            distribution="$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$stack" --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue | [0]" --output text)"
             if [ -z "$bucket" ] || [ "$bucket" = "None" ] || [ -z "$distribution" ] || [ "$distribution" = "None" ]; then
               echo "Stack $stack did not publish FrontendBucket and FrontendDistributionId."
               exit 1
             fi
-            aws s3 sync "$web/dist" "s3://$bucket" --delete
-            aws cloudfront create-invalidation --distribution-id "$distribution" --paths "/*"
+            aws s3 sync "$web/dist" "s3://$bucket" --delete --region "$AWS_REGION"
+            aws cloudfront create-invalidation --region "$AWS_REGION" --distribution-id "$distribution" --paths "/*"
             echo "Published $app frontend."
           done
