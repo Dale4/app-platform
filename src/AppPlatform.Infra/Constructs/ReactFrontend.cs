@@ -44,10 +44,6 @@ public sealed class ReactFrontend : Construct
                 function handler(event) {
                     var request = event.request;
                     var uri = request.uri;
-                    if (uri.length > 0 && uri.charAt(uri.length - 1) === '/') {
-                        request.uri = uri + 'index.html';
-                        return request;
-                    }
                     if (uri.lastIndexOf('.') <= uri.lastIndexOf('/')) {
                         request.uri = '/index.html';
                     }
