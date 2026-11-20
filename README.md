@@ -61,15 +61,23 @@ First deploy takes a while (VPC, NAT, RDS, CloudFront). Destroy is similarly slo
 
 ## How routing works
 
-There is no custom domain in this first version.
+There is no custom domain in this first version. Each app's site is the CloudFront URL in stack output `FrontendUrl`. CloudFront serves the React build from S3, and forwards `/{app}` and `/{app}/*` to the shared load balancer. The browser stays on HTTPS and calls the API on that same host.
 
-| App | API | Frontend |
+| App | API path on `FrontendUrl` | Load balancer |
 | --- | --- | --- |
-| ConstFlow | `http://<alb-dns>/constflow` | CloudFront URL from stack output `FrontendUrl` |
-| ProFlow | `http://<alb-dns>/proflow` | CloudFront URL from stack output `FrontendUrl` |
-| WaterFlow | `http://<alb-dns>/waterflow` | CloudFront URL from stack output `FrontendUrl` |
+| ConstFlow | `/constflow` | `http://<alb-dns>/constflow` |
+| ProFlow | `/proflow` | `http://<alb-dns>/proflow` |
+| WaterFlow | `/waterflow` | `http://<alb-dns>/waterflow` |
 
-`ASPNETCORE_PATHBASE` is already injected as `/{app}`. React production builds should use that API URL (for example `VITE_API_URL=http://<alb-dns>/constflow`).
+`ASPNETCORE_PATHBASE` is already injected as `/{app}`.
+
+## Frontend publish
+
+`.\scripts\deploy-env.ps1` looks for a sibling `{App}/web` folder after the stacks update. For WaterFlow that is `../WaterFlow/web`. When `package.json` is there, the script installs dependencies, builds with `VITE_API_BASE_URL=/{app}` (for example `/waterflow`), syncs `dist` to `FrontendBucket`, and invalidates `FrontendDistributionId`. Apps with no `web` folder are skipped.
+
+The GitHub deploy workflow uses the same rule. It only checks out this repo, so a cloud run skips the site publish until that sibling folder is on the runner.
+
+Destroy removes the bucket (including uploaded files) and the distribution with the app stack. It does not delete the web source.
 
 ## Database connection
 

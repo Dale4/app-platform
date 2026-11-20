@@ -59,3 +59,39 @@ jobs:
           else
             npx cdk deploy --all -c env=${{ inputs.env }} -c app=${{ inputs.app }} --require-approval never
           fi
+
+      - name: Publish frontends
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-west-1' }}
+        run: |
+          set -euo pipefail
+          ENV="${{ inputs.env }}"
+          APP="${{ inputs.app }}"
+          if [ "$APP" = "all" ]; then
+            apps="ConstFlow ProFlow WaterFlow"
+          else
+            apps="$APP"
+          fi
+          label="$(printf '%s' "$ENV" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
+          repo_parent="$(cd "$GITHUB_WORKSPACE/.." && pwd)"
+          for app in $apps; do
+            web="$repo_parent/$app/web"
+            if [ ! -f "$web/package.json" ]; then
+              echo "No web folder for $app at $web; skipping frontend publish."
+              continue
+            fi
+            prefix="/$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]')"
+            echo "Building $app web ($prefix)"
+            npm ci --prefix "$web"
+            VITE_API_BASE_URL="$prefix" npm run build --prefix "$web"
+            stack="AppPlatform-${label}-${app}"
+            bucket="$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$stack" --query "Stacks[0].Outputs[?OutputKey=='FrontendBucket'].OutputValue | [0]" --output text)"
+            distribution="$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$stack" --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue | [0]" --output text)"
+            if [ -z "$bucket" ] || [ "$bucket" = "None" ] || [ -z "$distribution" ] || [ "$distribution" = "None" ]; then
+              echo "Stack $stack did not publish FrontendBucket and FrontendDistributionId."
+              exit 1
+            fi
+            aws s3 sync "$web/dist" "s3://$bucket" --delete --region "$AWS_REGION"
+            aws cloudfront create-invalidation --region "$AWS_REGION" --distribution-id "$distribution" --paths "/*"
+            echo "Published $app frontend."
+          done

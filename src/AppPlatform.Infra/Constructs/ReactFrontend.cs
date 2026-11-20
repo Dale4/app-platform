@@ -11,6 +11,7 @@ public sealed class ReactFrontendProps
 {
     public required AppDefinition App { get; init; }
     public required string EnvName { get; init; }
+    public required string AlbDnsName { get; init; }
 }
 
 public sealed class ReactFrontend : Construct
@@ -33,6 +34,39 @@ public sealed class ReactFrontend : Construct
             AutoDeleteObjects = true,
         });
 
+        // Distribution-wide error responses would also rewrite API 403/404s.
+        // This function runs only on the S3 behavior.
+        var spaRewrite = new Function(this, "SpaRewrite", new FunctionProps
+        {
+            Comment = $"Rewrite {app.Name} client routes to index.html",
+            Code = FunctionCode.FromInline(
+                """
+                function handler(event) {
+                    var request = event.request;
+                    var uri = request.uri;
+                    if (uri.lastIndexOf('.') <= uri.lastIndexOf('/')) {
+                        request.uri = '/index.html';
+                    }
+                    return request;
+                }
+                """),
+        });
+
+        var albOrigin = new HttpOrigin(props.AlbDnsName, new HttpOriginProps
+        {
+            ProtocolPolicy = OriginProtocolPolicy.HTTP_ONLY,
+            HttpPort = 80,
+        });
+
+        BehaviorOptions ApiBehavior() => new()
+        {
+            Origin = albOrigin,
+            ViewerProtocolPolicy = ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            AllowedMethods = AllowedMethods.ALLOW_ALL,
+            CachePolicy = CachePolicy.CACHING_DISABLED,
+            OriginRequestPolicy = OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        };
+
         Distribution = new Distribution(this, "Distribution", new DistributionProps
         {
             Comment = $"{app.Name} React frontend ({props.EnvName})",
@@ -43,24 +77,20 @@ public sealed class ReactFrontend : Construct
                 ViewerProtocolPolicy = ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 CachePolicy = CachePolicy.CACHING_OPTIMIZED,
                 AllowedMethods = AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+                FunctionAssociations =
+                [
+                    new FunctionAssociation
+                    {
+                        Function = spaRewrite,
+                        EventType = FunctionEventType.VIEWER_REQUEST,
+                    },
+                ],
             },
-            ErrorResponses =
-            [
-                new ErrorResponse
-                {
-                    HttpStatus = 403,
-                    ResponseHttpStatus = 200,
-                    ResponsePagePath = "/index.html",
-                    Ttl = Duration.Minutes(1),
-                },
-                new ErrorResponse
-                {
-                    HttpStatus = 404,
-                    ResponseHttpStatus = 200,
-                    ResponsePagePath = "/index.html",
-                    Ttl = Duration.Minutes(1),
-                },
-            ],
+            AdditionalBehaviors = new Dictionary<string, IBehaviorOptions>
+            {
+                [app.PathPrefix] = ApiBehavior(),
+                [$"{app.PathPrefix}/*"] = ApiBehavior(),
+            },
         });
         Distribution.ApplyRemovalPolicy(RemovalPolicy.DESTROY);
     }
