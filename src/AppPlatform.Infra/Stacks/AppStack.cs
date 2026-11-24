@@ -87,6 +87,7 @@ public sealed class AppStack : Stack
         {
             App = app,
             EnvName = props.EnvName,
+            LoadBalancer = network.Alb,
         });
 
         new CfnOutput(this, "EcrUri", new CfnOutputProps
