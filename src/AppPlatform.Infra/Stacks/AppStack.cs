@@ -87,7 +87,7 @@ public sealed class AppStack : Stack
         {
             App = app,
             EnvName = props.EnvName,
-            LoadBalancer = network.Alb,
+            AlbDnsName = network.Alb.LoadBalancerDnsName,
         });
 
         new CfnOutput(this, "EcrUri", new CfnOutputProps
@@ -109,6 +109,11 @@ public sealed class AppStack : Stack
         {
             Value = frontend.Bucket.BucketName,
             Description = $"Upload the {app.Name} React build (index.html + assets) here",
+        });
+        new CfnOutput(this, "FrontendDistributionId", new CfnOutputProps
+        {
+            Value = frontend.Distribution.DistributionId,
+            Description = $"{app.Name} CloudFront distribution ID",
         });
         new CfnOutput(this, "FrontendUrl", new CfnOutputProps
         {
